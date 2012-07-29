@@ -15,7 +15,8 @@ module ExtSTI
     @association_inheritance = {
       :id => 0,
       :field_name => (params[:field_name] || :name),
-      :block => (block_given? ? Proc.new {|type| yield type }: Proc.new{ |type| type })
+      :block => (block_given? ? Proc.new {|type| yield type }: Proc.new{ |type| type }),
+      :class_cache => {}
     }      
     params.delete :field_name
     
@@ -53,9 +54,9 @@ module ExtSTI
         params = self.base_class.association_inheritance
         association = params[:association]
         
-        class_type = begin
-          record_id = record[association.foreign_key.to_s]
-          inheritance_record = association.klass.find(record_id)       
+        type_id = record[association.foreign_key.to_s]
+        class_type = params[:class_cache][type_id] ||= begin
+          inheritance_record = association.klass.find(type_id)       
           inheritance_record.send(params[:field_name].to_sym).camelize
         rescue ActiveRecord::RecordNotFound
           ""
