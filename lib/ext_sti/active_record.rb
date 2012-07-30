@@ -25,7 +25,11 @@ module ExtSTI
       @association_inheritance[:association] = belongs_to(association_name, params)
       validates @association_inheritance[:association].foreign_key.to_sym, :presence => true
   
-      before_validation :init_type    
+      before_validation :init_type
+      
+      #@association_inheritance[:observer] = @association_inheritance[:association].klass.after_update do |type|
+      #  @association_inheritance[:class_cache][type.id] = type.send(@association_inheritance[:field_name].to_sym).camelize
+      #end          
   
       class << self
         
@@ -69,11 +73,11 @@ module ExtSTI
               
         def relation #:nodoc:      
           @relation ||= ::ActiveRecord::Relation.new(self, arel_table)
-          params = self.association_inheritance
+          params = self.base_class.association_inheritance
           association = params[:association]
           
           if finder_needs_type_condition?
-            type =  params[:type] || sti_class.to_s
+            type =  params[:type] || self.to_s
             type_id = params[:id] ||= association.klass.where(params[:field_name] => type).first          
                              
             @relation.where(association.foreign_key.to_sym => type_id )
@@ -89,10 +93,10 @@ module ExtSTI
       
     module InstanceMethods
       def init_type
-        params = self.class.association_inheritance
+        params = self.class.base_class.association_inheritance
         association = params[:association]
         
-        type =  params[:type] || sti_class.to_s
+        type =  params[:type] || self.class.to_s
         
         type_instance = begin
             association.klass.where(params[:field_name] => type).first!
