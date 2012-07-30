@@ -1,6 +1,6 @@
 module ExtSTI
   
-  def ati_type type = self.class.to_s
+  def acts_as_ati_type( type = self.class.to_s )
     params = base_class.association_inheritance.dup
     
     params[:type] = type
@@ -9,14 +9,14 @@ module ExtSTI
     self.association_inheritance = params    
   end
   
-  def acts_as_ati association_name = :type, params
+  def acts_as_ati( association_name = :type, params = {} )
     include InstanceMethods
     
     @association_inheritance = {
-      :id => 0,
-      :field_name => (params[:field_name] || :name),
-      :block => (block_given? ? Proc.new {|type| yield type }: Proc.new{ |type| type }),
-      :class_cache => {}
+      id: 0,
+      field_name: params[:field_name] || :name,
+      block: block_given? ? Proc.new {|type| yield type } : Proc.new{ |type| type },
+      class_cache => {}
     }      
     params.delete :field_name
     
@@ -35,11 +35,11 @@ module ExtSTI
         @association_inheritance
       end
       
-      def association_inheritance= params
+      def association_inheritance=( params )
         @association_inheritance = params
       end
       
-      def instantiate(record)
+      def instantiate( record )
         sti_class = find_sti_class(record)
         record_id = sti_class.primary_key && record[sti_class.primary_key]
         if ActiveRecord::IdentityMap.enabled? && record_id
@@ -59,7 +59,7 @@ module ExtSTI
           inheritance_record = association.klass.find(type_id)       
           inheritance_record.send(params[:field_name].to_sym).camelize
         rescue ActiveRecord::RecordNotFound
-          ""
+          ''
         end
 
         super params[:block].call(class_type)
