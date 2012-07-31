@@ -38,7 +38,7 @@ module ExtSTI
         end
         
         def association_inheritance
-          @association_inheritance
+          @association_inheritance ||= base_class.association_inheritance.dup
         end
         
         def association_inheritance=( params )
@@ -57,7 +57,7 @@ module ExtSTI
         end
   
         def find_sti_class( record )
-          params = self.base_class.association_inheritance
+          params = self.association_inheritance
           association = params[:association]
           
           type_id = record[association.foreign_key.to_s]
@@ -73,7 +73,7 @@ module ExtSTI
               
         def relation #:nodoc:      
           @relation ||= ::ActiveRecord::Relation.new(self, arel_table)
-          params = self.base_class.association_inheritance
+          params = self.association_inheritance
           association = params[:association]
           
           if finder_needs_type_condition?
