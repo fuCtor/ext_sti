@@ -45,6 +45,16 @@ module ExtSTI
           @association_inheritance = params
         end
         
+        def new_by_type( type, params = {} )
+           find_sti_class(type.to_s.classify).new params
+        end
+        
+        def create_by_type( type, params = {} )
+           find_sti_class(type.to_s.classify).create params do |item|
+             yield item if block_given?
+           end
+        end
+        
         def instantiate( record )
           sti_class = find_sti_class(record)
           record_id = sti_class.primary_key && record[sti_class.primary_key]
@@ -58,16 +68,20 @@ module ExtSTI
   
         def find_sti_class( record )
           params = self.association_inheritance
-          association = params[:association]
-          
-          type_id = record[association.foreign_key.to_s]
-          class_type = params[:class_cache][type_id] ||= begin
-            inheritance_record = association.klass.find(type_id)       
-            inheritance_record.send(params[:field_name].to_sym).camelize
-          rescue ::ActiveRecord::RecordNotFound
-            ''
-          end
-  
+          if record.is_a? String
+            class_type = record
+          else            
+            association = params[:association]
+            
+            type_id = record[association.foreign_key.to_s]
+            class_type = params[:class_cache][type_id] ||= begin
+              inheritance_record = association.klass.find(type_id)       
+              inheritance_record.send(params[:field_name].to_sym).classify
+            rescue ::ActiveRecord::RecordNotFound
+              ''
+            end
+          end 
+         
           super params[:block].call(class_type)
         end
               
@@ -95,16 +109,17 @@ module ExtSTI
       def init_type
         params = self.class.base_class.association_inheritance
         association = params[:association]
-        
-        type =  params[:type] || self.class.to_s
-        
-        type_instance = begin
-            association.klass.where(params[:field_name] => type).first!
-          rescue ::ActiveRecord::RecordNotFound
-            association.klass.create params[:field_name] => type
-          end
-        
-        self.send "#{association.name}=", type_instance 
+        begin                  
+          type =  params[:type] || self.class.to_s
+          
+          type_instance = begin
+              association.klass.where(params[:field_name] => type).first!
+            rescue ::ActiveRecord::RecordNotFound
+              association.klass.create params[:field_name] => type
+            end
+          
+          self.send "#{association.name}=", type_instance 
+        end unless self.send(association.name)
       end
     end  
   end
