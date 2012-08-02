@@ -2,13 +2,18 @@ require 'active_record'
 
 module ExtSTI
   module ActiveRecord
-    def acts_as_ati_type( type = self.class.to_s )
-      params = base_class.association_inheritance.dup
+    def acts_as_ati_type( type = self.class.to_s, params = {} )
+      base_param = base_class.association_inheritance
       
-      params[:type] = type
-      params[:id] = params[:association].klass.where( params[:field_name] => type).first || 0
+      params[:alias].each { |al|
+        base_param[:alias][al.to_s.downcase.to_sym] = type  
+      } if params[:alias]
       
-      self.association_inheritance = params    
+      sti_params = self.association_inheritance
+      
+      sti_params[:type] = type
+      sti_params[:id] = base_param[:association].klass.where( base_param[:field_name] => type).first || 0      
+      self.association_inheritance = sti_params      
     end
     
     def acts_as_ati( association_name = :type, params = {} )
@@ -18,7 +23,8 @@ module ExtSTI
         id: 0,
         field_name: params[:field_name] || :name,
         block: block_given? ? Proc.new {|type| yield type } : Proc.new{ |type| type },
-        class_cache: {}
+        class_cache: {},
+        alias: {}
       }      
       params.delete :field_name
       
@@ -76,7 +82,9 @@ module ExtSTI
             type_id = record[association.foreign_key.to_s]
             class_type = params[:class_cache][type_id] ||= begin
               inheritance_record = association.klass.find(type_id)       
-              inheritance_record.send(params[:field_name].to_sym).classify
+              value = inheritance_record.send(params[:field_name].to_sym)             
+              value = (params[:alias][value.to_s.downcase.to_sym] || value)              
+              value.to_s.classify
             rescue ::ActiveRecord::RecordNotFound
               ''
             end
@@ -101,7 +109,6 @@ module ExtSTI
         end
         
       end
-      
     end
     
       
