@@ -114,7 +114,7 @@ module ExtSTI
       
     module InstanceMethods
       def init_type
-        params = self.class.base_class.association_inheritance
+        params = self.class.association_inheritance
         association = params[:association]
         begin                  
           type =  params[:type] || self.class.to_s
