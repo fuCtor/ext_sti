@@ -52,7 +52,8 @@ module ExtSTI
         end
         
         def new_by_type( type, params = {} )
-           find_sti_class(type.to_s.classify).new params
+           instance = find_sti_class(type.to_s.classify).new params
+           
         end
         
         def create_by_type( type, params = {} )
@@ -73,16 +74,20 @@ module ExtSTI
         end
   
         def find_sti_class( record )
-          params = self.association_inheritance
-          if record.is_a? String
-            class_type = record
-          else            
+          params = self.association_inheritance          
+          
+          class_type =  if record.is_a? String
+            (params[:alias][record.to_s.downcase.to_sym] || record).to_s.classify                        
+          else
             association = params[:association]
             
             type_id = record[association.foreign_key.to_s]
-            class_type = params[:class_cache][type_id] ||= begin
+            
+              
+            params[:class_cache][type_id] ||= begin
               inheritance_record = association.klass.find(type_id)       
-              value = inheritance_record.send(params[:field_name].to_sym)             
+              value = inheritance_record.send(params[:field_name].to_sym)
+                      
               value = (params[:alias][value.to_s.downcase.to_sym] || value)              
               value.to_s.classify
             rescue ::ActiveRecord::RecordNotFound
