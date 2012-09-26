@@ -12,11 +12,7 @@ module ExtSTI
       sti_params = self.association_inheritance
       
       sti_params[:type] = type
-      sti_params[:id] = begin 
-			base_param[:association].klass.where( base_param[:field_name] => type).first || 0  
-		rescue   
-			0
-		end
+      sti_params[:id] = base_param[:association].klass.where( base_param[:field_name] => type).first || 0      
       self.association_inheritance = sti_params      
     end
     
