@@ -31,3 +31,4 @@ Models:
         ati_type :blog
     end
     
+[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/b283ce6c5951ab702477bf0743b5db3f "githalytics.com")](http://githalytics.com/fuCtor/ext_sti)
