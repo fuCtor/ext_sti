@@ -67,7 +67,18 @@ module ExtSTI
         end
         
         def instantiate( record )
-		  params = self.association_inheritance          
+          sti_class = find_sti_class(record)
+          record_id = sti_class.primary_key && record[sti_class.primary_key]
+          if ::ActiveRecord::IdentityMap.enabled? && record_id
+            instance = use_identity_map(sti_class, record_id, record)
+          else
+            instance = sti_class.allocate.init_with('attributes' => record)
+          end
+          instance
+        end
+  
+        def find_sti_class( record )
+          params = self.association_inheritance          
           
           class_type =  if record.is_a? String
             (params[:alias][record.to_s.downcase.to_sym] || record).to_s.classify                        
@@ -86,19 +97,12 @@ module ExtSTI
             rescue ::ActiveRecord::RecordNotFound
               ''
             end
-          end 		
-		
-          sti_class = find_sti_class(params[:block].call(class_type))
-          record_id = sti_class.primary_key && record[sti_class.primary_key]
-          if ::ActiveRecord::IdentityMap.enabled? && record_id
-            instance = use_identity_map(sti_class, record_id, record)
-          else
-            instance = sti_class.allocate.init_with('attributes' => record)
-          end
-          instance
+          end 
+         
+          super params[:block].call(class_type)
         end
               
-        def relation      
+        def relation #:nodoc:      
           @relation ||= ::ActiveRecord::Relation.new(self, arel_table)
           params = self.association_inheritance
           association = params[:association]
