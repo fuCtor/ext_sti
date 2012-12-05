@@ -109,7 +109,8 @@ module ExtSTI
           
           if finder_needs_type_condition?
             type =  params[:type] || self.to_s
-            type_id = params[:id] ||= association.klass.where(params[:field_name] => type).first          
+            type_id = params[:id] || 0 
+			type_id = (params[:id] = association.klass.where(params[:field_name] => type).first) if type_id == 0
                              
             @relation.where(association.foreign_key.to_sym => type_id )
           else
